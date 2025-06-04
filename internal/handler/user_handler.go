@@ -199,6 +199,14 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// @Summary ログインユーザー情報を取得
+// @Description JWTトークンに基づいて、現在のログインユーザーの情報を取得します。
+// @Tags Users
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} domain.User
+// @Failure 401 {object} handler.ErrorResponse
+// @Router /me [get]
 func (h *UserHandler) Me(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -213,8 +221,4 @@ func (h *UserHandler) Me(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
-}
-
-type ErrorResponse struct {
-	Error string `json:"error"`
 }

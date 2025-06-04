@@ -19,6 +19,23 @@ definitions:
   handler.ErrorResponse:
     properties:
       error:
+        example: invalid request
+        type: string
+    type: object
+  handler.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handler.LoginResponse:
+    properties:
+      token:
+        example: your-jwt-token
         type: string
     type: object
 host: localhost:8080
@@ -35,6 +52,85 @@ info:
   title: Go User App API
   version: "1.0"
 paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: メールアドレスとパスワードでログインします。
+      parameters:
+      - description: ログイン情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: ログイン
+      tags:
+      - Auth
+  /me:
+    get:
+      description: JWTトークンに基づいて、現在のログインユーザーの情報を取得します。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: ログインユーザー情報を取得
+      tags:
+      - Users
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: 新しいユーザーを登録します。
+      parameters:
+      - description: ユーザー登録情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: サインアップ（ユーザー登録）
+      tags:
+      - Auth
   /users:
     get:
       consumes:

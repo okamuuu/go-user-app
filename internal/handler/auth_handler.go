@@ -16,20 +16,17 @@ func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
-// SignupRequest はユーザー登録用のリクエストボディ構造体
-type SignupRequest struct {
-	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-}
-
-// LoginRequest はログイン用のリクエストボディ構造体
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
-// Signup はユーザー登録エンドポイント
+// Signup godoc
+// @Summary サインアップ（ユーザー登録）
+// @Description 新しいユーザーを登録します。
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body domain.User true "ユーザー登録情報"
+// @Success 201 {object} domain.User
+// @Failure 400 {object} handler.ErrorResponse
+// @Failure 500 {object} handler.ErrorResponse
+// @Router /signup [post]
 func (h *AuthHandler) Signup(c *gin.Context) {
 	var req SignupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -51,7 +48,17 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
 }
 
-// Login はユーザーログインエンドポイント
+// Login godoc
+// @Summary ログイン
+// @Description メールアドレスとパスワードでログインします。
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body handler.LoginRequest true "ログイン情報"
+// @Success 200 {object} handler.LoginResponse
+// @Failure 400 {object} handler.ErrorResponse
+// @Failure 401 {object} handler.ErrorResponse
+// @Router /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
