@@ -1,34 +1,103 @@
 package main
 
 import (
-	"log"
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 
 	"github.com/okamuuu/go-user-app/internal/domain"
 	"github.com/okamuuu/go-user-app/internal/repository"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func main() {
-
+	// DB接続
 	db, err := gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("failed to connect database: %v", err)
+		panic("failed to connect database")
 	}
-
-	// マイグレーション実行
-	if err := db.AutoMigrate(&repository.UserModel{}); err != nil {
-		log.Fatalf("failed to migrate database: %v", err)
-	}
+	db.AutoMigrate(&repository.UserModel{})
 
 	repo := repository.NewUserRepository(db)
 
-	// アプリの処理（例：ユーザー作成）
-	user := &domain.User{
-		Name:  "Sample",
-		Email: "sample@example.com",
-	}
-	if err := repo.Save(user); err != nil {
-		log.Fatalf("failed to save user: %v", err)
-	}
+	r := gin.Default()
+
+	// ユーザー一覧取得
+	r.GET("/users", func(c *gin.Context) {
+		var users []domain.User
+
+		var models []repository.UserModel
+		if err := db.Find(&models).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		for _, m := range models {
+			users = append(users, domain.User{
+				ID:        m.ID,
+				Name:      m.Name,
+				Email:     m.Email,
+				Password:  m.Password,
+				CreatedAt: m.CreatedAt,
+				UpdatedAt: m.UpdatedAt,
+			})
+		}
+		c.JSON(http.StatusOK, users)
+	})
+
+	// ユーザー登録
+	r.POST("/users", func(c *gin.Context) {
+		var user domain.User
+		if err := c.ShouldBindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if err := repo.Save(&user); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, user)
+	})
+
+	// ユーザー更新
+	r.PUT("/users/:id", func(c *gin.Context) {
+		var user domain.User
+		if err := c.ShouldBindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// URLパラメータのIDをuintに変換してuser.IDにセット
+		// 省略する場合は検討が必要です
+
+		if err := repo.Update(&user); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, user)
+	})
+
+	// ユーザー削除
+	r.DELETE("/users/:id", func(c *gin.Context) {
+		idParam := c.Param("id")
+		idUint64, err := strconv.ParseUint(idParam, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+			return
+		}
+		id := uint(idUint64)
+
+		if err := repo.Delete(id); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.Status(http.StatusNoContent)
+	})
+
+	r.Run(":8080")
 }
