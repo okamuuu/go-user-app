@@ -1,45 +1,70 @@
 package repository
 
 import (
-	"sync"
+	"time"
 
 	"github.com/okamuuu/go-user-app/internal/domain"
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
-	mu sync.RWMutex
+	db *gorm.DB
 }
 
-func NewUserRepository() *UserRepository {
-	return &UserRepository{}
+func NewUserRepository(db *gorm.DB) *UserRepository {
+	return &UserRepository{db: db}
 }
 
 func (r *UserRepository) Save(user *domain.User) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	model := UserModel{
 		Name:     user.Name,
 		Email:    user.Email,
 		Password: user.Password,
 	}
-	return DB.Create(&model).Error
+
+	if err := r.db.Create(&model).Error; err != nil {
+		return err
+	}
+
+	// IDをuserに反映
+	user.ID = model.ID
+	user.CreatedAt = model.CreatedAt
+	user.UpdatedAt = model.UpdatedAt
+
+	return nil
 }
 
 func (r *UserRepository) FindByEmail(email string) (*domain.User, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	var model UserModel
-	result := DB.Where("email = ?", email).First(&model)
+	result := r.db.Where("email = ?", email).First(&model)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
 	return &domain.User{
-		ID:       model.ID,
-		Name:     model.Name,
-		Email:    model.Email,
-		Password: model.Password,
+		ID:        model.ID,
+		Name:      model.Name,
+		Email:     model.Email,
+		Password:  model.Password,
+		CreatedAt: model.CreatedAt,
+		UpdatedAt: model.UpdatedAt,
 	}, nil
+}
+
+func (r *UserRepository) Update(user *domain.User) error {
+	model := UserModel{}
+	if err := r.db.First(&model, "id = ?", user.ID).Error; err != nil {
+		return err
+	}
+
+	model.Name = user.Name
+	model.Email = user.Email
+	model.Password = user.Password
+	model.UpdatedAt = time.Now()
+
+	return r.db.Save(&model).Error
+}
+
+func (r *UserRepository) Delete(id uint) error {
+	return r.db.Delete(&UserModel{}, "id = ?", id).Error
 }
