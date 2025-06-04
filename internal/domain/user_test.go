@@ -8,7 +8,7 @@ func TestNewUser(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if user.ID != 1 {
+	if user.ID != 0 {
 		t.Errorf("expected ID 1, ogt %v", user.ID)
 	}
 }

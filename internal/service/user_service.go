@@ -29,7 +29,7 @@ func (s *UserService) CreateUser(user *domain.User) error {
 	if existing != nil {
 		return fmt.Errorf("email already exists")
 	}
-	return s.repo.Save(user)
+	return s.repo.Create(user)
 }
 
 func (s *UserService) GetUserByID(id uint) (*domain.User, error) {

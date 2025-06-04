@@ -15,7 +15,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("failed to connect to test database: %v", err)
 	}
-	err = db.AutoMigrate(&repository.UserModel{})
+	err = db.AutoMigrate(&repository.User{})
 	if err != nil {
 		t.Fatalf("failed to migrate test database: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestUserRepository_CRUD(t *testing.T) {
 		Password: "secure123",
 	}
 
-	err := repo.Save(user)
+	err := repo.Create(user)
 	assert.NoError(t, err, "save user")
 
 	// --- Read (FindByEmail) ---

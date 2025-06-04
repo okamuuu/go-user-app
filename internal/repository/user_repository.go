@@ -36,7 +36,7 @@ func (r *UserRepository) FindAll(offset, limit int) ([]*domain.User, error) {
 }
 
 // Save inserts a new user into the database
-func (r *UserRepository) Save(user *domain.User) error {
+func (r *UserRepository) Create(user *domain.User) error {
 	model := User{
 		Name:     user.Name,
 		Email:    user.Email,

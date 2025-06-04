@@ -25,13 +25,8 @@ func NewAuthService(repo *repository.UserRepository, jwtSecret []byte, tokenExpi
 }
 
 func (s *AuthService) SignUp(user *domain.User) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	user.Password = string(hashedPassword)
-
-	return s.repo.Save(user)
+	user.Password = HashPassword(user.Password)
+	return s.repo.Create(user)
 }
 
 func (s *AuthService) Login(email, password string) (string, error) {
@@ -79,4 +74,12 @@ func (s *AuthService) ValidateJWT(tokenString string) (*jwt.RegisteredClaims, er
 	}
 
 	return nil, errors.New("invalid token")
+}
+
+func HashPassword(password string) string {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		panic(err)
+	}
+	return string(hashed)
 }
