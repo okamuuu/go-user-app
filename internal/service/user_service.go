@@ -1,7 +1,7 @@
 package service
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/okamuuu/go-user-app/internal/domain"
 	"github.com/okamuuu/go-user-app/internal/repository"
@@ -15,36 +15,32 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (s *UserService) RegisterUser(name, email, password string) (*domain.User, error) {
-	// メールアドレスの重複チェック
-	existing, _ := s.repo.FindByEmail(email)
+// CreateUser creates a new user
+func (s *UserService) CreateUser(user *domain.User) error {
+	// 例: 重複チェック（emailユニークの場合）
+	existing, _ := s.repo.FindByEmail(user.Email)
 	if existing != nil {
-		return nil, errors.New("email already in use")
+		return fmt.Errorf("email already exists")
 	}
-
-	// ドメイン層の User を生成
-	user, err := domain.NewUser(name, email, password)
-	if err != nil {
-		return nil, err
-	}
-
-	// 永続化
-	err = s.repo.Save(user)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return s.repo.Save(user)
 }
 
-func (s *UserService) FindUserByEmail(email string) (*domain.User, error) {
-	userModel, err := s.repo.FindByEmail(email)
-	if err != nil {
-		return nil, err
-	}
-	return domain.NewUser(
-		userModel.Name,
-		userModel.Email,
-		userModel.Password,
-	)
+func (s *UserService) GetUserByID(id uint) (*domain.User, error) {
+	return s.repo.FindByID(id)
+}
+
+// GetUserByEmail fetches user by email
+func (s *UserService) GetUserByEmail(email string) (*domain.User, error) {
+	return s.repo.FindByEmail(email)
+}
+
+// UpdateUser updates an existing user
+func (s *UserService) UpdateUser(user *domain.User) error {
+	// 存在確認など必要に応じて
+	return s.repo.Update(user)
+}
+
+// DeleteUser deletes a user by ID
+func (s *UserService) DeleteUser(id uint) error {
+	return s.repo.Delete(id)
 }

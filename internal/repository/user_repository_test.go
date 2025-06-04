@@ -1,94 +1,69 @@
 package repository_test
 
 import (
-	"log"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/okamuuu/go-user-app/internal/domain"
 	"github.com/okamuuu/go-user-app/internal/repository"
+	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-
-	"github.com/google/uuid"
 )
 
-var testDB *gorm.DB
-
-func TestMain(m *testing.M) {
-	var err error
-	testDB, err = gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+func setupTestDB(t *testing.T) *gorm.DB {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("failed to connect database: %v", err)
+		t.Fatalf("failed to connect to test database: %v", err)
 	}
-
-	// マイグレーション
-	err = testDB.AutoMigrate(&repository.UserModel{})
+	err = db.AutoMigrate(&repository.UserModel{})
 	if err != nil {
-		log.Fatalf("failed to migrate: %v", err)
+		t.Fatalf("failed to migrate test database: %v", err)
 	}
-
-	os.Exit(m.Run())
+	return db
 }
 
-func createTestUser() *domain.User {
-	return &domain.User{
-		Name:      "Test User",
-		Email:     uuid.New().String() + "@example.com",
-		Password:  "password123",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+func TestUserRepository_CRUD(t *testing.T) {
+	db := setupTestDB(t)
+	repo := repository.NewUserRepository(db)
+
+	// --- Create ---
+	user := &domain.User{
+		Name:     "John Doe",
+		Email:    "john@example.com",
+		Password: "secure123",
 	}
-}
 
-func TestUpdateUser(t *testing.T) {
-	repo := repository.NewUserRepository(testDB)
-	user := createTestUser()
-
-	// Save
 	err := repo.Save(user)
-	if err != nil {
-		t.Fatalf("failed to save user: %v", err)
-	}
+	assert.NoError(t, err, "save user")
 
-	// Update
-	user.Name = "Updated Name"
-	user.Email = "updated@example.com"
-	err = repo.Update(user)
-	if err != nil {
-		t.Fatalf("failed to update user: %v", err)
-	}
+	// --- Read (FindByEmail) ---
+	found, err := repo.FindByEmail("john@example.com")
+	assert.NoError(t, err, "find user by email")
+	assert.Equal(t, user.Email, found.Email)
+	assert.Equal(t, user.Name, found.Name)
 
-	// Verify update
-	updated, err := repo.FindByEmail("updated@example.com")
-	if err != nil {
-		t.Fatalf("failed to find updated user: %v", err)
-	}
-	if updated.Name != "Updated Name" {
-		t.Errorf("expected name to be 'Updated Name', got '%s'", updated.Name)
-	}
-}
+	// --- Read (FindByID) ---
+	byID, err := repo.FindByID(found.ID)
+	assert.NoError(t, err, "find user by ID")
+	assert.Equal(t, found.ID, byID.ID)
 
-func TestDeleteUser(t *testing.T) {
-	repo := repository.NewUserRepository(testDB)
-	user := createTestUser()
+	// --- Update ---
+	byID.Name = "Updated Name"
+	byID.Password = "newpass"
+	err = repo.Update(byID)
+	assert.NoError(t, err, "update user")
 
-	// Save
-	err := repo.Save(user)
-	if err != nil {
-		t.Fatalf("failed to save user: %v", err)
-	}
+	updated, err := repo.FindByID(byID.ID)
+	assert.NoError(t, err, "read updated user")
+	assert.Equal(t, "Updated Name", updated.Name)
+	assert.Equal(t, "newpass", updated.Password)
+	assert.True(t, updated.UpdatedAt.After(updated.CreatedAt), "UpdatedAt should be after CreatedAt")
 
-	// Delete
-	err = repo.Delete(user.ID)
-	if err != nil {
-		t.Fatalf("failed to delete user: %v", err)
-	}
+	// --- Delete ---
+	err = repo.Delete(byID.ID)
+	assert.NoError(t, err, "delete user")
 
-	// Verify delete
-	_, err = repo.FindByEmail(user.Email)
-	if err == nil {
-		t.Fatal("expected error after deleting user, got none")
-	}
+	deleted, err := repo.FindByID(byID.ID)
+	assert.Error(t, err, "should not find deleted user")
+	assert.Nil(t, deleted)
 }
