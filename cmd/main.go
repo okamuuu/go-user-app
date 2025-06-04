@@ -45,7 +45,7 @@ func main() {
 	if err := db.AutoMigrate(&domain.User{}); err != nil {
 		log.Fatal("failed to migrate database:", err)
 	}
-	seed.SeedUsers()
+	seed.SeedUsers(db, 100)
 
 	// リポジトリ、サービス、ハンドラー初期化
 	userRepo := repository.NewUserRepository(db)

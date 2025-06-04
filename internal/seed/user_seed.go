@@ -4,43 +4,27 @@ import (
 	"log"
 	"time"
 
-	"github.com/okamuuu/go-user-app/internal/repository"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-
+	"github.com/bxcodec/faker/v4"
+	"github.com/okamuuu/go-user-app/internal/domain"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
-func SeedUsers() {
-	// DB接続
-	db, err := gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
-	if err != nil {
-		log.Fatal("failed to connect database:", err)
-	}
-
-	users := []repository.User{
-		{
-			Name:      "Test User 1",
-			Email:     "test1@example.com",
-			Password:  hash("password1"),
+func SeedUsers(db *gorm.DB, count int) {
+	for i := 0; i < count; i++ {
+		user := domain.User{
+			Name:      faker.Name(),
+			Email:     faker.Email(),
+			Password:  faker.Password(), // 必要なら hash に変換
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
-		},
-		{
-			Name:      "Test User 2",
-			Email:     "test2@example.com",
-			Password:  hash("password2"),
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
-	}
+		}
 
-	for _, user := range users {
 		if err := db.Create(&user).Error; err != nil {
-			log.Printf("⚠️ Failed to insert user: %v", err)
+			log.Printf("Failed to create user #%d: %v", i+1, err)
 		}
 	}
-	log.Println("✅ Seeded users")
+	log.Printf("Seeded %d users successfully", count)
 }
 
 func hash(pw string) string {
