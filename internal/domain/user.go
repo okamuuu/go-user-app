@@ -6,7 +6,7 @@ import (
 )
 
 type User struct {
-	ID        string
+	ID        uint
 	Name      string
 	Email     string
 	Password  string // 本当はハッシュ化して扱う想定
@@ -15,12 +15,12 @@ type User struct {
 }
 
 // 新しいユーザーを作成するファクトリ関数
-func NewUser(id, name, email, password string) (*User, error) {
-	if id == "" || name == "" || email == "" || password == "" {
+func NewUser(name, email, password string) (*User, error) {
+	if name == "" || email == "" || password == "" {
 		return nil, errors.New("all fields are required")
 	}
 	return &User{
-		ID:        id,
+		ID:        0,
 		Name:      name,
 		Email:     email,
 		Password:  password,

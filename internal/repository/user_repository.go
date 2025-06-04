@@ -1,30 +1,45 @@
 package repository
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/okamuuu/go-user-app/internal/domain"
 )
 
 type UserRepository struct {
-	mu    sync.RWMutex
-	users map[string]*UserModel
+	mu sync.RWMutex
 }
 
 func NewUserRepository() *UserRepository {
-	return &UserRepository{
-		users: make(map[string]*UserModel),
-	}
+	return &UserRepository{}
 }
 
 func (r *UserRepository) Save(user *domain.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, exists := r.users[user.Email]; exists {
-		return errors.New("user already exists")
+	model := UserModel{
+		Name:     user.Name,
+		Email:    user.Email,
+		Password: user.Password,
 	}
-	r.users[user.Email] = ToUserModel(user)
-	return nil
+	return DB.Create(&model).Error
+}
+
+func (r *UserRepository) FindByEmail(email string) (*domain.User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var model UserModel
+	result := DB.Where("email = ?", email).First(&model)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &domain.User{
+		ID:       model.ID,
+		Name:     model.Name,
+		Email:    model.Email,
+		Password: model.Password,
+	}, nil
 }

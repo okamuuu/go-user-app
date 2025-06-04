@@ -1,21 +1,23 @@
 package repository
 
 import (
+	"log"
+
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-func NewDB() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open("users.db"), &gorm.Config{})
+var DB *gorm.DB
+
+func InitDB() {
+	var err error
+	DB, err = gorm.Open(sqlite.Open("user.db"), &gorm.Config{})
 	if err != nil {
-		return nil, err
+		log.Fatalf("failed to connect database: %v", err)
 	}
 
-	// User テーブルがまだなければ自動で作成する
-	err = db.AutoMigrate(&UserModel{})
+	err = DB.AutoMigrate(&UserModel{})
 	if err != nil {
-		return nil, err
+		log.Fatalf("failed to migrate: %v", err)
 	}
-
-	return db, nil
 }

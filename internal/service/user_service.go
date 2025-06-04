@@ -15,7 +15,7 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (s *UserService) RegisterUser(id, name, email, password string) (*domain.User, error) {
+func (s *UserService) RegisterUser(name, email, password string) (*domain.User, error) {
 	// メールアドレスの重複チェック
 	existing, _ := s.repo.FindByEmail(email)
 	if existing != nil {
@@ -23,7 +23,7 @@ func (s *UserService) RegisterUser(id, name, email, password string) (*domain.Us
 	}
 
 	// ドメイン層の User を生成
-	user, err := domain.NewUser(id, name, email, password)
+	user, err := domain.NewUser(name, email, password)
 	if err != nil {
 		return nil, err
 	}
@@ -35,4 +35,16 @@ func (s *UserService) RegisterUser(id, name, email, password string) (*domain.Us
 	}
 
 	return user, nil
+}
+
+func (s *UserService) FindUserByEmail(email string) (*domain.User, error) {
+	userModel, err := s.repo.FindByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	return domain.NewUser(
+		userModel.Name,
+		userModel.Email,
+		userModel.Password,
+	)
 }
