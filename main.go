@@ -1,30 +1,34 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
+	"github.com/okamuuu/go-user-app/internal/domain"
 	"github.com/okamuuu/go-user-app/internal/repository"
-	"github.com/okamuuu/go-user-app/internal/service"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 func main() {
-	repository.InitDB()
 
-	repo := repository.NewUserRepository()
-	userService := service.NewUserService(repo)
-
-	// ユーザー登録の例
-	user, err := userService.RegisterUser("Taro Yamada", "taro@example.com", "password123")
+	db, err := gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Failed to register user: %v", err)
+		log.Fatalf("failed to connect database: %v", err)
 	}
-	fmt.Printf("User registered: %+v\n", user)
 
-	// ユーザー検索の例
-	foundUser, err := userService.FindUserByEmail("taro@example.com")
-	if err != nil {
-		log.Fatalf("User not found: %v", err)
+	// マイグレーション実行
+	if err := db.AutoMigrate(&repository.UserModel{}); err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
 	}
-	fmt.Printf("Found user: %+v\n", foundUser)
+
+	repo := repository.NewUserRepository(db)
+
+	// アプリの処理（例：ユーザー作成）
+	user := &domain.User{
+		Name:  "Sample",
+		Email: "sample@example.com",
+	}
+	if err := repo.Save(user); err != nil {
+		log.Fatalf("failed to save user: %v", err)
+	}
 }
