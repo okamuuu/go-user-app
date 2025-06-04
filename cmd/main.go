@@ -9,9 +9,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
+	docs "github.com/okamuuu/go-user-app/cmd/docs"
 	"github.com/okamuuu/go-user-app/internal/domain"
 	"github.com/okamuuu/go-user-app/internal/handler"
 	"github.com/okamuuu/go-user-app/internal/middleware"
@@ -20,6 +23,25 @@ import (
 	"github.com/okamuuu/go-user-app/internal/service"
 )
 
+// @title           Go User App API
+// @version         1.0
+// @description     シンプルなユーザー管理API（Gin + GORM + JWT）
+// @termsOfService  http://example.com/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.example.com/support
+// @contact.email  support@example.com
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      localhost:8080
+// @BasePath  /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description JWT形式: Bearer <token>
 func main() {
 	// .env ファイル読み込み（あれば）
 	if err := godotenv.Load(); err != nil {
@@ -56,6 +78,7 @@ func main() {
 
 	// Ginルーター作成
 	r := gin.Default()
+	docs.SwaggerInfo.BasePath = "/api"
 
 	api := r.Group("/api")
 
@@ -77,6 +100,8 @@ func main() {
 		userRoutes.GET("", userHandler.GetUsers)
 		userRoutes.POST("", userHandler.CreateUser)
 	}
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// サーバー起動
 	port := os.Getenv("PORT")
