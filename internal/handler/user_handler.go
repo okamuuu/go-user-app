@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -52,21 +53,55 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+	// URL パラメータからユーザーIDを取得
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
 		return
 	}
-	var req domain.User
+
+	// 認証情報から userID を取得（本人チェック用）
+	authUserID, exists := c.Get("userID")
+	if !exists || authUserID.(uint) != uint(id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You can update only your own profile"})
+		return
+	}
+
+	// リクエストボディをパース
+	var req struct {
+		Name     string `json:"name" binding:"required"`
+		Email    string `json:"email" binding:"required,email"`
+		Password string `json:"password,omitempty" binding:"omitempty,min=6"`
+	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		log.Printf("[ERROR] Failed to bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-	req.ID = uint(id)
-	if err := h.service.UpdateUser(&req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+	// 更新用のUser構造体を作成
+	user := &domain.User{
+		ID:       uint(id),
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	log.Printf("[DEBUG] req: %+v", req)
+	log.Printf("[DEBUG] user: %+v", user)
+
+	// パスワードは任意更新のため、あればセット（暗号化はサービス層で）
+	if req.Password != "" {
+		user.Password = req.Password
+	}
+
+	if err := h.service.UpdateUser(user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
+
 	c.Status(http.StatusOK)
 }
 

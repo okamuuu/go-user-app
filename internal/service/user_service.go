@@ -2,9 +2,11 @@ package service
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/okamuuu/go-user-app/internal/domain"
 	"github.com/okamuuu/go-user-app/internal/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
@@ -36,7 +38,28 @@ func (s *UserService) GetUserByEmail(email string) (*domain.User, error) {
 
 // UpdateUser updates an existing user
 func (s *UserService) UpdateUser(user *domain.User) error {
-	// 存在確認など必要に応じて
+
+	existingUser, err := s.repo.FindByID(user.ID)
+	log.Printf("[DEBUG] Updating user: %+v", existingUser)
+
+	if err != nil {
+		return err
+	}
+
+	if user.Name != "" {
+		existingUser.Name = user.Name
+	}
+	if user.Email != "" {
+		existingUser.Email = user.Email
+	}
+	if user.Password != "" {
+		hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		user.Password = string(hashed)
+	}
+
 	return s.repo.Update(user)
 }
 
