@@ -3,8 +3,8 @@ package repository
 import "github.com/okamuuu/go-user-app/internal/domain"
 
 // ドメインモデル → DBモデル
-func ToUserModel(u *domain.User) *UserModel {
-	return &UserModel{
+func ToUserModel(u *domain.User) *User {
+	return &User{
 		ID:        u.ID,
 		Name:      u.Name,
 		Email:     u.Email,
@@ -15,7 +15,7 @@ func ToUserModel(u *domain.User) *UserModel {
 }
 
 // DBモデル → ドメインモデル
-func ToDomainUser(um *UserModel) *domain.User {
+func ToDomainUser(um *User) *domain.User {
 	return &domain.User{
 		ID:        um.ID,
 		Name:      um.Name,

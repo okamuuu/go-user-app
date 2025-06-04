@@ -17,7 +17,7 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 
 // Save inserts a new user into the database
 func (r *UserRepository) Save(user *domain.User) error {
-	model := UserModel{
+	model := User{
 		Name:     user.Name,
 		Email:    user.Email,
 		Password: user.Password,
@@ -27,7 +27,7 @@ func (r *UserRepository) Save(user *domain.User) error {
 
 // FindByEmail finds a user by email
 func (r *UserRepository) FindByEmail(email string) (*domain.User, error) {
-	var model UserModel
+	var model User
 	result := r.db.Where("email = ?", email).First(&model)
 	if result.Error != nil {
 		return nil, result.Error
@@ -45,7 +45,7 @@ func (r *UserRepository) FindByEmail(email string) (*domain.User, error) {
 
 // FindByID finds a user by ID
 func (r *UserRepository) FindByID(id uint) (*domain.User, error) {
-	var model UserModel
+	var model User
 	result := r.db.First(&model, id)
 	if result.Error != nil {
 		return nil, result.Error
@@ -63,7 +63,7 @@ func (r *UserRepository) FindByID(id uint) (*domain.User, error) {
 
 // Update updates an existing user in the database
 func (r *UserRepository) Update(user *domain.User) error {
-	var model UserModel
+	var model User
 	if err := r.db.First(&model, "id = ?", user.ID).Error; err != nil {
 		return err
 	}
@@ -78,5 +78,5 @@ func (r *UserRepository) Update(user *domain.User) error {
 
 // Delete removes a user from the database by ID
 func (r *UserRepository) Delete(id uint) error {
-	return r.db.Delete(&UserModel{}, id).Error
+	return r.db.Delete(&User{}, id).Error
 }

@@ -2,7 +2,7 @@ package repository
 
 import "time"
 
-type UserModel struct {
+type User struct {
 	ID        uint `gorm:"primaryKey;autoIncrement"`
 	Name      string
 	Email     string `gorm:"uniqueIndex"`

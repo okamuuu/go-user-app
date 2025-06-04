@@ -82,3 +82,19 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+func (h *UserHandler) Me(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found in context"})
+		return
+	}
+
+	user, err := h.service.GetUserByID(userID.(uint))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}

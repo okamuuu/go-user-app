@@ -14,35 +14,38 @@ import (
 
 	"github.com/okamuuu/go-user-app/internal/domain"
 	"github.com/okamuuu/go-user-app/internal/handler"
+	"github.com/okamuuu/go-user-app/internal/middleware"
 	"github.com/okamuuu/go-user-app/internal/repository"
 	"github.com/okamuuu/go-user-app/internal/service"
 )
 
 func main() {
-	// .env ファイルから環境変数読み込み（任意）
+	// .env ファイル読み込み（あれば）
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, proceeding with environment variables")
 	}
+
 	jwtSecret := os.Getenv("JWT_SECRET")
 	expireHoursStr := os.Getenv("JWT_EXPIRE_HOURS")
-
 	expireHours, err := strconv.Atoi(expireHoursStr)
-
 	if err != nil {
 		log.Fatalf("Invalid JWT_EXPIRE_HOURS: %v", err)
 	}
-	// DB接続（SQLiteの例）
+
+	// DB接続
 	db, err := gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatal("failed to connect database:", err)
 	}
 
-	// マイグレーション（UserModel構造体をDBに反映）
+	// 起動時に全テーブルをドロップしてから再作成
+	// 学習用なので都度DBをリセットしている
+	db.Migrator().DropTable(&domain.User{})
 	if err := db.AutoMigrate(&domain.User{}); err != nil {
 		log.Fatal("failed to migrate database:", err)
 	}
 
-	// リポジトリ・サービス・ハンドラーの初期化
+	// リポジトリ、サービス、ハンドラー初期化
 	userRepo := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepo)
 	authService := service.NewAuthService(userRepo, []byte(jwtSecret), time.Duration(expireHours)*time.Hour)
@@ -52,23 +55,27 @@ func main() {
 	// Ginルーター作成
 	r := gin.Default()
 
-	// APIルーティング設定
 	api := r.Group("/api")
 
-	// ユーザーCRUDルート
-	userRoutes := api.Group("/users")
-	{
-		userRoutes.POST("", userHandler.CreateUser)
-		userRoutes.GET("/:id", userHandler.GetUser)
-		userRoutes.PUT("/:id", userHandler.UpdateUser)
-		userRoutes.DELETE("/:id", userHandler.DeleteUser)
-	}
-
-	// 認証ルート
+	// 認証不要ルート（サインアップ・ログイン）
 	api.POST("/signup", authHandler.Signup)
 	api.POST("/login", authHandler.Login)
 
-	// サーバー起動（ポートは環境変数PORTで指定可能。指定なければ8080）
+	// 認証必要ルート
+	authorized := api.Group("/")
+	authorized.Use(middleware.AuthMiddleware([]byte(jwtSecret)))
+	authorized.GET("/me", userHandler.Me)
+
+	// ユーザーCRUDルート
+	userRoutes := authorized.Group("/users")
+	{
+		userRoutes.GET("/:id", userHandler.GetUser)
+		userRoutes.PUT("/:id", userHandler.UpdateUser)
+		userRoutes.DELETE("/:id", userHandler.DeleteUser)
+		userRoutes.POST("", userHandler.CreateUser)
+	}
+
+	// サーバー起動
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

@@ -37,3 +37,18 @@ curl -X PUT http://localhost:8080/users/1 \
 ```bash
 curl -X DELETE http://localhost:8080/users/1
 ```
+
+## 認証/認可
+
+```
+curl -X POST http://localhost:8080/api/signup \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test User","email":"test@example.com","password":"password123"}'
+
+TOKEN=$(curl -s -X POST http://localhost:8080/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com", "password":"password123"}' | jq -r .token)
+
+curl -X GET http://localhost:8080/api/me \
+  -H "Authorization: Bearer $TOKEN"
+```
