@@ -15,6 +15,26 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
+func (r *UserRepository) FindAll(offset, limit int) ([]*domain.User, error) {
+	var models []User
+	result := r.db.Offset(offset).Limit(limit).Find(&models)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	var users []*domain.User
+	for _, m := range models {
+		users = append(users, &domain.User{
+			ID:        m.ID,
+			Name:      m.Name,
+			Email:     m.Email,
+			CreatedAt: m.CreatedAt,
+			UpdatedAt: m.UpdatedAt,
+		})
+	}
+	return users, nil
+}
+
 // Save inserts a new user into the database
 func (r *UserRepository) Save(user *domain.User) error {
 	model := User{

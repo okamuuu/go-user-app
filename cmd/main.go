@@ -16,6 +16,7 @@ import (
 	"github.com/okamuuu/go-user-app/internal/handler"
 	"github.com/okamuuu/go-user-app/internal/middleware"
 	"github.com/okamuuu/go-user-app/internal/repository"
+	"github.com/okamuuu/go-user-app/internal/seed"
 	"github.com/okamuuu/go-user-app/internal/service"
 )
 
@@ -44,6 +45,7 @@ func main() {
 	if err := db.AutoMigrate(&domain.User{}); err != nil {
 		log.Fatal("failed to migrate database:", err)
 	}
+	seed.SeedUsers()
 
 	// リポジトリ、サービス、ハンドラー初期化
 	userRepo := repository.NewUserRepository(db)
@@ -72,6 +74,7 @@ func main() {
 		userRoutes.GET("/:id", userHandler.GetUser)
 		userRoutes.PUT("/:id", userHandler.UpdateUser)
 		userRoutes.DELETE("/:id", userHandler.DeleteUser)
+		userRoutes.GET("", userHandler.GetUsers)
 		userRoutes.POST("", userHandler.CreateUser)
 	}
 

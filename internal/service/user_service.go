@@ -17,6 +17,11 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
+func (s *UserService) GetUsers(page, limit int) ([]*domain.User, error) {
+	offset := (page - 1) * limit
+	return s.repo.FindAll(offset, limit)
+}
+
 // CreateUser creates a new user
 func (s *UserService) CreateUser(user *domain.User) error {
 	// 例: 重複チェック（emailユニークの場合）
